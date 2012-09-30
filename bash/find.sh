@@ -1,15 +1,19 @@
 #!/bin/sh
 
+#Bash version 4.2.37
+#Find version 4.4.2
+
 shopt -s dotglob
+shopt -s nocasematch
 V_TYPE="e"
 V_NAME="*"
 V_DIR=
-#fucking mag^W^W^Wbash, how does it work?
+#fucking mag^W^W^Wbash, how do you work?
 SYMHACK="-e "
 
 matchfunc(){
     if [ "$V_TYPE" "$1" -a  $SYMHACK "$1" ]; then
-        if [[ $1 = $V_NAME ]]; then
+        if [[ "$1" = $V_NAME ]]; then
             echo "$1"
         fi
     fi
@@ -72,7 +76,7 @@ ensurevalidargs(){
 main(){
     parsecmdline "$@"
     ensurevalidargs
-    matchfunc "$V_DIR"
+    matchfunc "$V_DIR" #WHY, bash, WHY?
     walk "$V_DIR"
 }
 

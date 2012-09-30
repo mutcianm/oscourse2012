@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #Bash version 4.2.37
 #Find version 4.4.2
@@ -7,7 +7,7 @@ shopt -s dotglob
 shopt -s nocasematch
 V_TYPE="e"
 V_NAME="*"
-V_DIR=
+V_DIR="."
 #fucking mag^W^W^Wbash, how do you work?
 SYMHACK="-e "
 
@@ -43,7 +43,7 @@ do
             V_TYPE="$1"
             ;;
         *)
-            if [ -z "$V_DIR" ]; then
+            if [ "$V_DIR" = "." ]; then
                 V_DIR="$1"
             else
                 echo "Too many or incorrect parameters"

@@ -2,7 +2,7 @@
 
 shopt -s nullglob
 
-QPATH=$HOME/tmp/yan2
+QPATH=$HOME/.nyaqueue
 
 mkdir -p "$QPATH"
 mkdir -p "$QPATH/requests"
@@ -18,7 +18,7 @@ append_queue(){
 start_daemon(){
      if [ -f "$QPATH/wgetqueue.pid" ]; then
         echo "Daemon is already running!"
-        exit -1
+        exit 1
     fi
     logger "Starting daemon"
     bash  wgetqueue.sh --daemon &
@@ -28,7 +28,7 @@ start_daemon(){
 stop_daemon(){
     if [ ! -f "$QPATH/wgetqueue.pid" ]; then
         echo "Daemon is not running!"
-        exit -1
+        exit 1
     fi
     logger "Stopping wget daemon"
     kill -9 `cat $QPATH/wgetqueue.pid`

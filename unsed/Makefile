@@ -4,14 +4,15 @@ LIBFLAGS=
 EXECUTABLE=readlines-main
 LIBRARY=libreadlines.so
 
-all: readlines-main.o readlines.o
-	$(CC) readlines-main.o readlines.o -o $(EXECUTABLE)
+all: readlines-main unsed
 
-all-shared: readlines-main.o libreadlines
-	$(CC) -L . readlines-main.o -lreadlines -o $(EXECUTABLE)
+all-shared: readlines-main-shared unsed-shared
 
-readlines-main.o:
-	$(CC) $(CFLAGS) readlines-main.c
+readlines-main: readlines.o
+	$(CC) readlines-main.c readlines.o -o $(EXECUTABLE)
+
+readlines-main-shared: libreadlines
+	$(CC) readlines-main.c -L. -lreadlines -o $(EXECUTABLE)
 
 readlines.o:
 	$(CC) $(CFLAGS) readlines.c
@@ -24,6 +25,9 @@ readlines-shared.o:
 
 unsed: readlines.o
 	$(CC) unsed.c readlines.o -lpcre -o unsed
+
+unsed-shared: libreadlines
+	$(CC) unsed.c -L. -lreadlines -lpcre -o unsed
 
 clean:
 	rm -f *.o $(EXECUTABLE) $(LIBRARY) unsed

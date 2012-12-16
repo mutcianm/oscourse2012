@@ -33,7 +33,8 @@ void match_all_in_str(pcre* re, char* str, int str_len, int greedy, char* repl, 
             return;
     }
     strncat(&buf[bufpos], &str[strpos], str_len - strpos+1);
-    printf("%s\n", buf);
+    //printf("%s\n", buf);
+    write(0, buf, strlen(buf));
 
 }
 

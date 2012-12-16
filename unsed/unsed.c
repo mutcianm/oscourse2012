@@ -6,6 +6,24 @@
 
 #define STR_LENGTH 256
 
+void match_all_in_str(pcre* re, char* str, int str_len, int greedy){
+    int count = 0;
+    int ovector[30];
+    int offset = 0;
+    while((offset < str_len) && (count = pcre_exec(re,NULL, str, str_len, offset, NULL, ovector, 30) >= 0)){
+        int i;
+        for (i = 0; i < count; ++i){
+            printf("%d %d\n", ovector[2*i+1], ovector[2*i]); 
+        }
+        printf("FUCK\n");
+        offset = ovector[1];
+        if(!greedy)
+            return;
+    }
+   
+
+}
+
 int main(int argc, char** argv){
     if(argc < 2){
         printf("PatUUUUUUUtern not found");
@@ -26,7 +44,7 @@ int main(int argc, char** argv){
     printf("%s\n%s\n%d\n", pattern, repl, greedy);
 
     pcre* re;
-    int options = 0;
+    int options = PCRE_UTF8;
     const char* error;
     int erroffset;
     re = pcre_compile(pattern, options, &error, &erroffset, NULL);
@@ -40,25 +58,7 @@ int main(int argc, char** argv){
         bytes_read = rl_readline(rl, buf, rl_max_size(rl));
         if(bytes_read > 0){
             write(0, buf, bytes_read);
-            int count = 0;
-            int ovector[30];
-
-            count = pcre_exec(re,NULL, buf, bytes_read, 0, NULL, ovector, 30);
-            if(!count){
-                printf("no match\n");
-                continue;
-            }
-            printf("matches: %d\n", count);
-            if(greedy){
-                int i;
-                for(i = 0; i < count*2; i+=2){
-                    if(ovector[i] < 0)
-                        printf("unset\n");
-                    else{
-                        printf("%d %d\n", ovector[i], ovector[i+1]);
-                    }
-                }
-            }
+            match_all_in_str(re, buf, bytes_read, greedy);
         }
 
     }while(bytes_read != 0);

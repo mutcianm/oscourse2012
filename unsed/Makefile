@@ -22,5 +22,8 @@ libreadlines: readlines-shared.o
 readlines-shared.o:
 	$(CC) -fPIC -c readlines.c -o readlines-shared.o
 
+unsed: readlines.o
+	$(CC) unsed.c readlines.o -lpcre -o unsed
+
 clean:
-	rm -f *.o $(EXECUTABLE) $(LIBRARY)
+	rm -f *.o $(EXECUTABLE) $(LIBRARY) unsed

@@ -17,7 +17,7 @@ void match_all_in_str(pcre* re, char* str, int str_len, int greedy, char* repl, 
     int bufpos = 0;
     buf = malloc(BUFFER_LEN);
     memset(buf, 0, BUFFER_LEN);
-    while((offset < str_len) && (count = pcre_exec(re,NULL, str, str_len, offset, NULL, ovector, 30) >= 0)){
+    while((offset < str_len) && (count = pcre_exec(re,NULL, str, str_len, offset, 0, ovector, 30) >= 0)){
         int i;
         strncat(&buf[bufpos], &str[strpos], ovector[0] - strpos);
         bufpos += ovector[0] - strpos;

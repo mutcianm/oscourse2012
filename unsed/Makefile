@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-c -O2 -Wall
-LIBFLAGS=
+LDFLAGS=-fPIC -c -O2 -Wall
 EXECUTABLE=readlines-main
 LIBRARY=libreadlines.so
 
@@ -21,7 +21,7 @@ libreadlines: readlines-shared.o
 	$(CC) -shared readlines-shared.o -o $(LIBRARY)
 
 readlines-shared.o:
-	$(CC) -fPIC -c readlines.c -o readlines-shared.o
+	$(CC) $(LDFLAGS) readlines.c -o readlines-shared.o
 
 unsed: readlines.o
 	$(CC) unsed.c readlines.o -lpcre -o unsed

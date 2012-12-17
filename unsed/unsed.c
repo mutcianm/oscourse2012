@@ -34,7 +34,7 @@ void match_all_in_str(pcre* re, char* str, int str_len, int greedy, char* repl, 
     }
     strncat(&buf[bufpos], &str[strpos], str_len - strpos+1);
     //printf("%s\n", buf);
-    write(0, buf, strlen(buf));
+    write(1, buf, strlen(buf));
 
 }
 
@@ -43,7 +43,7 @@ int main(int argc, char** argv){
         printf("Pattern not found");
         return -1;
     }
-    struct RL* rl = rl_open(1, STR_LENGTH);
+    struct RL* rl = rl_open(0, STR_LENGTH);
     char* buf = malloc(rl->max_size);
     int bytes_read = 0;
 

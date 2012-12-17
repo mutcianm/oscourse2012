@@ -24,16 +24,11 @@ void match_all_in_str(pcre* re, char* str, int str_len, int greedy, char* repl, 
         strpos = ovector[1];
         strncat(&buf[bufpos], repl, repl_len);
         bufpos += repl_len;
-       // for (i = 0; i < count; ++i){
-       //     printf("%d %d\n", ovector[2*i], ovector[2*i+1]); 
-       // }
-       // printf("TMP(%d,%d): %s\n", bufpos, strpos, buf);
         offset = ovector[1];
         if(!greedy)
             return;
     }
     strncat(&buf[bufpos], &str[strpos], str_len - strpos+1);
-    //printf("%s\n", buf);
     write(1, buf, strlen(buf));
 
 }
@@ -55,7 +50,6 @@ int main(int argc, char** argv){
     char* repl = malloc(strlen(pattern_tmp)+1);
     strcpy(repl, pattern_tmp);
     int greedy = (strtok(NULL, "/") != NULL);
-    //printf("%s\n%s\n%d\n", pattern, repl, greedy);
 
     pcre* re;
     int options = PCRE_UTF8;
@@ -71,7 +65,6 @@ int main(int argc, char** argv){
     do{
         bytes_read = rl_readline(rl, buf, rl_max_size(rl));
         if(bytes_read > 0){
-           // write(0, buf, bytes_read);
             match_all_in_str(re, buf, bytes_read, greedy, repl, strlen(repl));
         }
 

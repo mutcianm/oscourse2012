@@ -3,6 +3,8 @@
 #Bash version 4.2.37
 #Find version 4.4.2
 
+#lolol
+
 shopt -s dotglob
 shopt -s nocasematch
 V_TYPE="e"
@@ -10,7 +12,7 @@ V_NAME="*"
 V_DIR="."
 #fucking mag^W^W^Wbash, how do you work?
 SYMHACK="-e "
-
+#fug
 matchfunc(){
     if [ "$V_TYPE" "$1" -a  $SYMHACK "$1" ]; then
         if [[ "$1" = $V_NAME ]]; then

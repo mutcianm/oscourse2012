@@ -15,7 +15,7 @@
 #include <iostream>
 #include <pty.h>
  
-const int BUF_SIZE = 4096;
+const int BUF_SIZE = 2048;
  
 struct s_buffer {
     char buff[BUF_SIZE];
@@ -28,6 +28,7 @@ struct s_buffer {
 using namespace std;
  
 int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
+    printf("src read start\n");
     if ((buff->pos < BUF_SIZE) && (src->revents & POLLIN)) {
             int cnt =  read(src->fd, buff->buff + buff->pos, BUF_SIZE - buff->pos);
             if (cnt <= 0) {
@@ -38,10 +39,11 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
             }
     }
  
-    if ((buff->pos > 0) && (dest->revents & POLLOUT)) {
+    printf("dst write start\n");
+    if ((buff->pos > 0)) {
             int cnt = write(dest->fd, buff->buff, buff->pos);
             if (cnt <= 0) {
-                perror("write error");
+                perror("write failed");
                 buff->out_died = true;
             }
             if (cnt > 0) {
@@ -50,6 +52,7 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
             buff->pos-=cnt;
     }
  
+    printf("dst write end\n");
     if (buff->pos < BUF_SIZE && !buff->out_died) {
         src->events |= POLLIN;
     } else {
@@ -78,46 +81,53 @@ void handle_client(int cfd) {
         close(aslave);
         pollfd pfds[2];
         pfds[0].fd = cfd;
-        pfds[0].events = POLLIN | POLLERR | POLLOUT;
+        pfds[0].events = POLLIN | POLLERR ;
         pfds[0].revents = 0;
         pfds[1].fd = amaster;
-        pfds[1].events = POLLIN | POLLERR | POLLOUT;
+        pfds[1].events = POLLIN | POLLERR ;
         pfds[1].revents = 0;
         int ret;
         struct s_buffer from;
         memset(from.buff, BUF_SIZE, 0);
         struct s_buffer to;
         memset(to.buff, BUF_SIZE, 0);
-        while (!from.in_dead && !to.in_dead) {
-            ret = poll(pfds, 2, 1);
+        while (!from.in_dead && !to.in_dead && ! from.out_died && !to .out_died) {
+            ret = poll(pfds, 2, -1);
             if (!ret) {
                 continue;
             }
             if (ret < 0) {
                 //error
-                perror("something bad with poll");
+                perror("poll failed");
                 _exit(1);
             }
             if(pfds[0].revents & POLLERR || pfds[1].revents & POLLERR){
                 perror("io error");
                 _exit(1);
             }
-            pull_data(&pfds[0],&from, &pfds[1]);
-            pull_data(&pfds[1], &to, &pfds[0]);
+            if(pfds[0].revents & POLLIN ){ 
+                printf("polling: d");
+                pull_data(&pfds[0], &from, &pfds[1]);
+            }
+            if(pfds[1].revents & POLLIN ) {
+                printf("polling: d");
+                pull_data(&pfds[1], &to,   &pfds[0]);
+            }
+                pfds[0].revents = pfds[1].revents = 0;
+            printf("poll revents: %d %d\n", pfds[0].revents,  pfds[1].revents);
         }
         _exit(0);
     }
     
     printf("asdfafda\n");
 
+    close(amaster);
+    close(cfd);
     dup2(aslave, 0);
     dup2(aslave, 1);
     dup2(aslave, 2);
     //int fd = open(name, O_RDWR);
     execlp("bash", "bash",  NULL);
-    execlp("echo", "echo", "shell terminated", NULL);
-    close(cfd);
-    close(amaster);
     close(aslave);
     //close(fd);
  

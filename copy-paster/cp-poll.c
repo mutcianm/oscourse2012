@@ -20,8 +20,8 @@ int main(int argc, char** argv){
         fds[2*(i-1) + 1].fd = atoi(argv[2*(i-1) + 1]);
         fds[2*(i-1) + 1].events = POLLOUT;
     }
-    fds[0].fd = open("wtf.txt", O_RDONLY);
-    fds[1].fd = open("out.txt", O_WRONLY);
+    /*fds[0].fd = open("wtf.txt", O_RDONLY);*/
+    /*fds[1].fd = open("out.txt", O_WRONLY);*/
     int num_left = n;
     while(num_left > 0){
         int res = poll(fds, n, -1); //wait until interrupted

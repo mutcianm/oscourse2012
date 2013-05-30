@@ -2,10 +2,9 @@
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/stat.h>
-#include <sys/stat.h>
 #include <netdb.h>
 #include <pty.h>
+#include <fcntl.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,23 +42,22 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
             int cnt = write(dest->fd, buff->buff, buff->pos);
             if (cnt < 0) {
                 perror("write error");
-                exit(1);
+                buff->out_died = true;
             }
             if (cnt > 0) {
                 memmove(buff->buff, buff->buff+cnt, buff->pos - cnt);
-                buff->pos -= cnt;
             }      
             buff->pos-=cnt;
     }
  
-    if (buff->pos < BUF_SIZE && !buff->in_dead) {
+    if (buff->pos < BUF_SIZE && !buff->out_died) {
         src->events |= POLLIN;
     } else {
         src->events &= ~POLLIN;
     }
-    if(buff->out_died){
-        dest->events = 0;
-    }
+    //if(buff->out_died){
+        //dest->events = 0;
+    //}
  
     return 0;
 }
@@ -90,7 +88,7 @@ void handle_client(int cfd) {
         //jbufffrm.buff = (char*)malloc(BUF_SIZE);
         memset(to.buff, BUF_SIZE, 0);
         while (!from.in_dead && !to.in_dead) {
-            ret = poll(pfds, 2, 0);
+            ret = poll(pfds, 2, -1);
             if (!ret) {
                 continue;
             }
@@ -101,21 +99,25 @@ void handle_client(int cfd) {
             }
             pull_data(&pfds[0],&from, &pfds[1]);
             pull_data(&pfds[1], &to, &pfds[0]);
-            sleep(1);
         }
-        exit(0)
+        exit(0);
     }
-    setsid();
+    
     close(amaster);
     close(cfd);
+    setsid();
+    int pty_fd = open(name, O_RDWR);
+    close(pty_fd);
+
     dup2(aslave, 0);
     dup2(aslave, 1);
     dup2(aslave, 2);
-    close(aslave);
-   int fd = open(name, O_RDWR);
-    close(fd);
+    //int fd = open(name, O_RDWR);
     execlp("sh", "sh",  NULL);
+    //close(fd);
+    close(aslave);
  
+    perror("FUCK");
 
     //Oup2(cfd, 0);
     //dup2(cfd, 1);
@@ -186,7 +188,6 @@ int main()
         perror("no binds");
         exit(1);
     }
-    int fd = -1;
     vector<pollfd> pollfds(fds.size());
     for (int i = 0; i < pollfds.size(); i++) {
         pollfds[i].fd = fds[i];
@@ -195,7 +196,7 @@ int main()
     }
  
     while (true) {
-        int ret = poll(pollfds.data(), pollfds.size(), 0);
+        int ret = poll(pollfds.data(), pollfds.size(), -1);
         if (ret < 0) {
             //error
             perror("something bad with poll");
@@ -217,6 +218,7 @@ int main()
                     perror("fd < 0");
                     continue;
                 }
+                printf("Accepting %d\n", cfd);
                 int pid = fork();
                 if (pid == 0) {
                     for (int i = 0; i < fds.size(); i++) {
@@ -224,10 +226,8 @@ int main()
                     }
                     handle_client(cfd);
                 }
-                close(cfd);
+                //close(cfd);
             }
         }
     }
 }
-
-

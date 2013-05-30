@@ -31,8 +31,8 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
     if ((buff->pos < BUF_SIZE) && (src->revents & POLLIN)) {
             int cnt =  read(src->fd, buff->buff + buff->pos, BUF_SIZE - buff->pos);
             if (cnt <= 0) {
-                buff->is_EOF = true;
-                src->events ^= POLLIN;
+                perror("read failed");
+                buff->in_dead = true;
             } else {
                 buff->pos+=cnt;
             }
@@ -40,7 +40,7 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
  
     if ((buff->pos > 0) && (dest->revents & POLLOUT)) {
             int cnt = write(dest->fd, buff->buff, buff->pos);
-            if (cnt < 0) {
+            if (cnt <= 0) {
                 perror("write error");
                 buff->out_died = true;
             }
@@ -63,13 +63,16 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
 }
  
 void handle_client(int cfd) {
+    setsid();
+    printf("asdfafda\n");
     int amaster = 0;
     int aslave = 0;
     char name[4096];
     if (openpty(&amaster, &aslave, name, NULL, NULL) == -1) {
         perror("openpty failed");
-        exit(1);    
+        _exit(1);    
     }
+    printf("asdfafda\n");
     int shellpid = fork();
     if (shellpid != 0) {
         close(aslave);
@@ -82,40 +85,41 @@ void handle_client(int cfd) {
         pfds[1].revents = 0;
         int ret;
         struct s_buffer from;
-        //from.buff = (char*)malloc(BUF_SIZE);
         memset(from.buff, BUF_SIZE, 0);
         struct s_buffer to;
-        //jbufffrm.buff = (char*)malloc(BUF_SIZE);
         memset(to.buff, BUF_SIZE, 0);
         while (!from.in_dead && !to.in_dead) {
-            ret = poll(pfds, 2, -1);
+            ret = poll(pfds, 2, 1);
             if (!ret) {
                 continue;
             }
             if (ret < 0) {
                 //error
                 perror("something bad with poll");
-                exit(1);
+                _exit(1);
+            }
+            if(pfds[0].revents & POLLERR || pfds[1].revents & POLLERR){
+                perror("io error");
+                _exit(1);
             }
             pull_data(&pfds[0],&from, &pfds[1]);
             pull_data(&pfds[1], &to, &pfds[0]);
         }
-        exit(0);
+        _exit(0);
     }
     
-    close(amaster);
-    close(cfd);
-    setsid();
-    int pty_fd = open(name, O_RDWR);
-    close(pty_fd);
+    printf("asdfafda\n");
 
     dup2(aslave, 0);
     dup2(aslave, 1);
     dup2(aslave, 2);
     //int fd = open(name, O_RDWR);
-    execlp("sh", "sh",  NULL);
-    //close(fd);
+    execlp("bash", "bash",  NULL);
+    execlp("echo", "echo", "shell terminated", NULL);
+    close(cfd);
+    close(amaster);
     close(aslave);
+    //close(fd);
  
     perror("FUCK");
 
@@ -125,21 +129,21 @@ void handle_client(int cfd) {
     // close(cfd);
     //execvp("cat", "cat", "-", NULL);
     //execlp("echo", "echo", "hello", NULL);
-    exit(0);
+    _exit(0);
 }
  
 int main()
 {
-    int dpid = fork();
-    if (dpid != 0) {
-        waitpid(dpid, NULL, 0);
-        exit(0);
-    }
-    int sid = setsid();
-    if (sid < 0) {
-        perror("session creation error");
-        exit(1);
-    }
+    //int dpid = fork();
+    //if (dpid != 0) {
+        //waitpid(dpid, NULL, 0);
+        //exit(0);
+    //}
+    //int sid = setsid();
+    //if (sid < 0) {
+        //perror("session creation error");
+        //exit(1);
+    //}
     struct addrinfo hints;
     struct addrinfo *servinfo;
     int status;
@@ -196,7 +200,7 @@ int main()
     }
  
     while (true) {
-        int ret = poll(pollfds.data(), pollfds.size(), -1);
+        int ret = poll(pollfds.data(), pollfds.size(), 1);
         if (ret < 0) {
             //error
             perror("something bad with poll");
@@ -207,8 +211,8 @@ int main()
         }
         for (int i = 0; i < pollfds.size(); i++) {
             if (pollfds[i].revents & (POLLERR | POLLHUP | POLLRDHUP | POLLNVAL)) {
-                //pollfds[i].events = 0;
-                //close(fds[i]);
+                pollfds[i].events = 0;
+                close(fds[i]);
                 cerr << "listen error" << endl;
                 exit(1);
             }
@@ -225,6 +229,7 @@ int main()
                         close(fds[i]);
                     }
                     handle_client(cfd);
+                    return 0;
                 }
                 //close(cfd);
             }

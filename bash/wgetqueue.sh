@@ -1,7 +1,7 @@
 #!/bin/bash
 
 shopt -s nullglob
-
+LOCKFILE=
 QPATH=$HOME/.nyaqueue
 
 mkdir -p "$QPATH"
@@ -11,7 +11,8 @@ append_queue(){
     for a in "$@"
     do
         r=`mktemp --tmpdir="$QPATH/requests"`
-        echo "$a" > "$r"
+        echo "$a" > ".$r"
+        mv ".$r" "$r"
     done
 }
 

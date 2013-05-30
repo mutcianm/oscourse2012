@@ -26,24 +26,23 @@ struct s_buffer {
 };
  
 using namespace std;
+
  
 int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
-    printf("src read start\n");
     if ((buff->pos < BUF_SIZE) && (src->revents & POLLIN)) {
             int cnt =  read(src->fd, buff->buff + buff->pos, BUF_SIZE - buff->pos);
             if (cnt <= 0) {
-                perror("read failed");
+                perror("read() failed");
                 buff->in_dead = true;
             } else {
                 buff->pos+=cnt;
             }
     }
  
-    printf("dst write start\n");
     if ((buff->pos > 0)) {
             int cnt = write(dest->fd, buff->buff, buff->pos);
             if (cnt <= 0) {
-                perror("write failed");
+                perror("write() failed");
                 buff->out_died = true;
             }
             if (cnt > 0) {
@@ -52,30 +51,26 @@ int pull_data(pollfd *src, s_buffer *buff, pollfd *dest) {
             buff->pos-=cnt;
     }
  
-    printf("dst write end\n");
     if (buff->pos < BUF_SIZE && !buff->out_died) {
         src->events |= POLLIN;
     } else {
         src->events &= ~POLLIN;
     }
-    //if(buff->out_died){
-        //dest->events = 0;
-    //}
- 
     return 0;
 }
  
 void handle_client(int cfd) {
+    //if(setpgrp() == -1){
+        //perror("setpgrp failed");
+    //}
     setsid();
-    printf("asdfafda\n");
     int amaster = 0;
     int aslave = 0;
     char name[4096];
     if (openpty(&amaster, &aslave, name, NULL, NULL) == -1) {
-        perror("openpty failed");
+        perror("openpty() failed");
         _exit(1);    
     }
-    printf("asdfafda\n");
     int shellpid = fork();
     if (shellpid != 0) {
         close(aslave);
@@ -84,7 +79,7 @@ void handle_client(int cfd) {
         pfds[0].events = POLLIN | POLLERR ;
         pfds[0].revents = 0;
         pfds[1].fd = amaster;
-        pfds[1].events = POLLIN | POLLERR ;
+        pfds[1].events = POLLIN | POLLERR  ;
         pfds[1].revents = 0;
         int ret;
         struct s_buffer from;
@@ -97,48 +92,35 @@ void handle_client(int cfd) {
                 continue;
             }
             if (ret < 0) {
-                //error
-                perror("poll failed");
+                perror("poll() failed");
                 _exit(1);
             }
-            if(pfds[0].revents & POLLERR || pfds[1].revents & POLLERR){
+            if(pfds[0].revents & POLLERR || pfds[1].revents & POLLERR ){
                 perror("io error");
                 _exit(1);
             }
             if(pfds[0].revents & POLLIN ){ 
-                printf("polling: d");
+                printf("polling: 0->1\n");
                 pull_data(&pfds[0], &from, &pfds[1]);
             }
             if(pfds[1].revents & POLLIN ) {
-                printf("polling: d");
+                printf("polling: 1->0\n");
                 pull_data(&pfds[1], &to,   &pfds[0]);
             }
-                pfds[0].revents = pfds[1].revents = 0;
+            pfds[0].revents = pfds[1].revents = 0;
             printf("poll revents: %d %d\n", pfds[0].revents,  pfds[1].revents);
         }
+        kill(shellpid, SIGTERM);
         _exit(0);
     }
     
-    printf("asdfafda\n");
-
     close(amaster);
     close(cfd);
     dup2(aslave, 0);
     dup2(aslave, 1);
     dup2(aslave, 2);
-    //int fd = open(name, O_RDWR);
     execlp("bash", "bash",  NULL);
     close(aslave);
-    //close(fd);
- 
-    perror("FUCK");
-
-    //Oup2(cfd, 0);
-    //dup2(cfd, 1);
-    //dup2(cfd, 2);
-    // close(cfd);
-    //execvp("cat", "cat", "-", NULL);
-    //execlp("echo", "echo", "hello", NULL);
     _exit(0);
 }
  
@@ -168,22 +150,13 @@ int main()
         exit(1);
     }
     while (servinfo) {
-        if (servinfo == NULL)
-        {
-            printf("servinfo == NULL\n");
-            exit(1);
-        }
         fds.push_back(socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol));
         if (fds.back() < 0)
         {
             perror("sockfd < 0");
             exit(1);
         }
-        if (bind(fds.back(), servinfo->ai_addr, servinfo->ai_addrlen) < 0)
-        {
-           // perror("bind < 0");
-           // exit(1);
-        }
+        bind(fds.back(), servinfo->ai_addr, servinfo->ai_addrlen);
         int yes = 1;
         if (setsockopt(fds.back(), SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0)
         {
@@ -192,14 +165,14 @@ int main()
         }
         if (listen(fds.back(), 5) < 0)
         {
-            perror("listen < 0");
+            perror("listen() failed");
             exit(1);
         }
         servinfo = servinfo->ai_next;
     }
     freeaddrinfo(servinfo);
     if (fds.empty()) {
-        perror("no binds");
+        perror("no interfaces to bind on");
         exit(1);
     }
     vector<pollfd> pollfds(fds.size());
@@ -212,10 +185,11 @@ int main()
     while (true) {
         int ret = poll(pollfds.data(), pollfds.size(), 1);
         if (ret < 0) {
-            //error
-            perror("something bad with poll");
+            perror("poll() failed");
             exit(1);
         }
+        int status;
+        wait3(&status, WNOHANG, NULL); //get rid of dead children
         if (ret == 0) {
             continue;
         }
@@ -223,8 +197,8 @@ int main()
             if (pollfds[i].revents & (POLLERR | POLLHUP | POLLRDHUP | POLLNVAL)) {
                 pollfds[i].events = 0;
                 close(fds[i]);
-                cerr << "listen error" << endl;
-                exit(1);
+                perror("socket has been disconnected"); //this shoud not be reachable
+                _exit(1);
             }
             if (pollfds[i].revents & POLLIN) {
                 int cfd = accept(fds[i], NULL, NULL);
@@ -241,7 +215,7 @@ int main()
                     handle_client(cfd);
                     return 0;
                 }
-                //close(cfd);
+                close(cfd);
             }
         }
     }

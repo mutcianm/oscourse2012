@@ -2,5 +2,7 @@
 
 exec 9<> wtf.txt
 exec 10<> out.txt
+#read -u 9 a
+#echo $a
 
-./a.out 0 1
+exec ./cp-poll 9 10

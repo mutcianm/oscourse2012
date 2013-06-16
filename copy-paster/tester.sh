@@ -1,8 +1,8 @@
 #!/bin/bash
 
-exec 9<> wtf.txt
-exec 10<> out.txt
+exec 9<> asd
+exec 10<> 123
 #read -u 9 a
 #echo $a
 
-exec ./cp-poll 9 10
+exec ./cp-epoll 9 1

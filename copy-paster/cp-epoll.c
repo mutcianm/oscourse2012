@@ -95,7 +95,7 @@ int main(int argc, char** argv){
             exit(-1);
         }
         fds[2*i + 1].data.ptr = buf;
-        fds[2*i + 1].events = EPOLLOUT| EPOLLHUP | EPOLLERR;
+        fds[2*i + 1].events = EPOLLOUT | EPOLLHUP | EPOLLERR;
         if(epoll_ctl(efd, EPOLL_CTL_ADD, buf->fd_out, &fds[2*i+1]) < 0){
             printf("epoll_ctl failed on %d: %s\n", buf->fd_out, strerror(errno));
             exit(-1);
@@ -112,30 +112,31 @@ int main(int argc, char** argv){
             if(events[i].events & EPOLLOUT){
                 s_buffer* buf = (s_buffer*)events[i].data.ptr;
                 int ret = read_from_buffer(buf, buf->fd_out);
-                if(ret == 0){
-                    /*continue;*/
+                if(ret > 0){
+                    continue;
                 }
                 if(ret < 0){
-                    remove_pair(efd, buf);
-                    num_left--;
+                    /*remove_pair(efd, buf);*/
+                    /*num_left--;*/
                     break;
                 }
             }
             if(events[i].events & EPOLLIN){
                 s_buffer* buf = (s_buffer*)events[i].data.ptr;
                 int ret = read_to_buf(buf, buf->fd_in);
-                if(ret == 0){
-                    /*continue;*/
+                if(ret > 0){
+                    continue;
                 }
                 if(ret < 0){
-                    remove_pair(efd, buf);
-                    num_left--;
+                    /*remove_pair(efd, buf);*/
+                    /*num_left--;*/
                     break;
                 }
             }
-            if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP){
+            if((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)){
                 printf("descriptor error: %X\n", events[i].events & (EPOLLHUP | EPOLLERR));
                 remove_pair(efd, (s_buffer*)events[i].data.ptr);
+                num_left--;
             }
         }
     }

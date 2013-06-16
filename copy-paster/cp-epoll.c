@@ -65,7 +65,6 @@ int read_from_buffer(s_buffer* buf, int fd){
             memmove(buf->data, buf->data + cnt, buf->pos - cnt);
         }
         buf->pos -= cnt;
-        printf("buff pos = %lu\n", buf->pos);
     }
     return 0;
 }
@@ -88,7 +87,9 @@ int main(int argc, char** argv){
     for(int i = 0; i < n; ++i){
         s_buffer* buf = alloc_buffer(BUF_SIZE, atoi(argv[2*i+1]), atoi(argv[2*i+2]));
         fds[2*i].data.ptr = buf;
-        fds[2*i].events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR;
+        fds[2*i].events = EPOLLIN  | EPOLLHUP | EPOLLERR;
+        fcntl(buf->fd_out, F_SETFL, O_NONBLOCK);
+        fcntl(buf->fd_in, F_SETFL, O_NONBLOCK);
         if(epoll_ctl(efd, EPOLL_CTL_ADD, buf->fd_in, &fds[2*i]) < 0){
             printf("epoll_ctl failed on %d: %s\n", buf->fd_in, strerror(errno));
             exit(-1);
@@ -112,7 +113,7 @@ int main(int argc, char** argv){
                 s_buffer* buf = (s_buffer*)events[i].data.ptr;
                 int ret = read_from_buffer(buf, buf->fd_out);
                 if(ret == 0){
-                    continue;
+                    /*continue;*/
                 }
                 if(ret < 0){
                     remove_pair(efd, buf);
@@ -124,7 +125,7 @@ int main(int argc, char** argv){
                 s_buffer* buf = (s_buffer*)events[i].data.ptr;
                 int ret = read_to_buf(buf, buf->fd_in);
                 if(ret == 0){
-                    continue;
+                    /*continue;*/
                 }
                 if(ret < 0){
                     remove_pair(efd, buf);
